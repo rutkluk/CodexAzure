@@ -17,19 +17,26 @@ Creates an Azure Data Factory V2 instance with optional Managed Identity and Git
 | `location` | `string` | n/a | The Azure region for the Data Factory. |
 | `managed_virtual_network_enabled` | `bool` | `true` | Enables Managed Virtual Network integration. |
 | `public_network_enabled` | `bool` | `true` | Enables public network access. |
-| `identity` | `object` | `null` | Optional managed identity configuration supporting `SystemAssigned`, `UserAssigned`, or a combination of both. |
+| `identity` | `object` | `null` | Optional managed identity configuration controlling system-assigned and/or user-assigned identities. |
 | `environment` | `string` | `"dev"` | Deployment environment driving conditional behaviors (supports `dev`, `test`, `pre`, `prod`). |
 | `customer_managed_key_id` | `string` | `null` | Optional customer managed key ID automatically required when `environment` is `pre` or `prod`. |
 | `github_configuration` | `object` | `null` | Optional GitHub configuration for source control integration. |
 | `tags` | `map(string)` | `{}` | Optional tags for the Data Factory. |
 
-When providing an `identity` value, specify the `type` and (if applicable) a list of `user_assigned_identity_ids`. The module accepts:
+When providing an `identity` value, configure one or both of the following properties:
 
-- `SystemAssigned` – enables only the system-assigned managed identity.
-- `UserAssigned` – attaches one or more user-assigned managed identities (requires `user_assigned_identity_ids`).
-- `SystemAssigned, UserAssigned` – enables both system-assigned and user-assigned identities.
+- `enable_system_assigned_identity` – set to `true` to enable the system-assigned identity.
+- `user_assigned_identity_ids` – provide one or more resource IDs for user-assigned managed identities to attach.
+
+The module dynamically derives the identity `type` for the Data Factory resource from these inputs, allowing the following combinations:
+
+1. Only system-assigned (`enable_system_assigned_identity = true`).
+2. Only user-assigned (`user_assigned_identity_ids` contains at least one value).
+3. Both system- and user-assigned identities (`enable_system_assigned_identity = true` and a non-empty `user_assigned_identity_ids`). In this case, the customer managed key (if configured) is associated with the system-assigned identity.
 
 For environments marked as `pre` or `prod`, supply `customer_managed_key_id` with the Azure Key Vault key ID that should encrypt the factory. The module enforces this requirement with a Terraform precondition and will also apply the key to other environments whenever a value is provided.
+
+When a customer managed key is enabled, the module ensures that a compatible managed identity is configured and automatically maps the key to the system-assigned identity when both identity types are in use.
 
 #### Outputs
 
@@ -72,7 +79,7 @@ module "data_factory" {
   environment         = "pre"
 
   identity = {
-    type = "SystemAssigned, UserAssigned"
+    enable_system_assigned_identity = true
     user_assigned_identity_ids = [
       "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.ManagedIdentity/userAssignedIdentities/example"
     ]

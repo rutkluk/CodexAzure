@@ -28,21 +28,18 @@ variable "public_network_enabled" {
 variable "identity" {
   description = "Optional managed identity configuration for the Data Factory."
   type = object({
-    type                       = string
-    user_assigned_identity_ids = optional(list(string))
+    enable_system_assigned_identity = optional(bool, false)
+    user_assigned_identity_ids      = optional(list(string), [])
   })
   default = null
 
   validation {
-    condition     = var.identity == null ? true : length(regexall("^(SystemAssigned|UserAssigned|SystemAssigned, UserAssigned)$", var.identity.type)) == 1
-    error_message = "Identity type must be one of 'SystemAssigned', 'UserAssigned', or 'SystemAssigned, UserAssigned'."
-  }
-
-  validation {
     condition = var.identity == null ? true : (
-      length(regexall("UserAssigned", var.identity.type)) == 0 || length(coalesce(var.identity.user_assigned_identity_ids, [])) > 0
-    )
-    error_message = "At least one user_assigned_identity_ids value must be provided when using a UserAssigned identity."
+      (try(var.identity.enable_system_assigned_identity, false) ? 1 : 0) +
+      (length(try(var.identity.user_assigned_identity_ids, [])) > 0 ? 1 : 0)
+    ) > 0
+
+    error_message = "Enable the system-assigned identity or provide at least one user-assigned identity."
   }
 }
 

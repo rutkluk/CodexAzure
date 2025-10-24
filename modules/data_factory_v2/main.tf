@@ -14,15 +14,34 @@ provider "azurerm" {
 }
 
 locals {
-  identity_type_tokens = var.identity == null ? [] : split(",", replace(var.identity.type, " ", ""))
-  identity_requires_user_assigned_ids = length([
-    for token in local.identity_type_tokens : lower(token)
-    if token != "" && token == "userassigned"
-  ]) > 0
-  identity_user_assigned_identity_ids = var.identity == null ? null : lookup(var.identity, "user_assigned_identity_ids", null)
+  identity_config = var.identity == null ? null : {
+    enable_system_assigned_identity = try(var.identity.enable_system_assigned_identity, false)
+    user_assigned_identity_ids      = try(var.identity.user_assigned_identity_ids, [])
+  }
+
+  identity_type_tokens = local.identity_config == null ? [] : compact([
+    local.identity_config.enable_system_assigned_identity ? "SystemAssigned" : null,
+    length(local.identity_config.user_assigned_identity_ids) > 0 ? "UserAssigned" : null,
+  ])
+
+  identity_type = length(local.identity_type_tokens) == 0 ? null : join(", ", local.identity_type_tokens)
+
+  identity_user_assigned_identity_ids = local.identity_config == null ? [] : local.identity_config.user_assigned_identity_ids
+  use_system_assigned_identity        = contains(local.identity_type_tokens, "SystemAssigned")
+  use_user_assigned_identity          = contains(local.identity_type_tokens, "UserAssigned")
 
   customer_managed_key_supplied = var.customer_managed_key_id != null && trimspace(var.customer_managed_key_id) != ""
   use_customer_managed_key       = local.customer_managed_key_supplied || contains(["pre", "prod"], lower(var.environment))
+
+  customer_managed_key_identity_type = !local.use_customer_managed_key ? null : (
+    local.use_system_assigned_identity ? "SystemAssigned" : (
+      local.use_user_assigned_identity ? "UserAssigned" : null
+    )
+  )
+
+  customer_managed_key_identity_id = local.customer_managed_key_identity_type == "UserAssigned" && length(local.identity_user_assigned_identity_ids) > 0
+    ? local.identity_user_assigned_identity_ids[0]
+    : null
 }
 
 resource "azurerm_data_factory" "this" {
@@ -34,10 +53,10 @@ resource "azurerm_data_factory" "this" {
   public_network_enabled          = var.public_network_enabled
 
   dynamic "identity" {
-    for_each = var.identity == null ? [] : [var.identity]
+    for_each = local.identity_type == null ? [] : [1]
     content {
-      type         = identity.value.type
-      identity_ids = local.identity_requires_user_assigned_ids ? local.identity_user_assigned_identity_ids : null
+      type         = local.identity_type
+      identity_ids = local.use_user_assigned_identity ? local.identity_user_assigned_identity_ids : null
     }
   }
 
@@ -54,12 +73,25 @@ resource "azurerm_data_factory" "this" {
 
   customer_managed_key_id = local.use_customer_managed_key ? var.customer_managed_key_id : null
 
+  dynamic "customer_managed_key_identity" {
+    for_each = local.use_customer_managed_key && local.customer_managed_key_identity_type != null ? [1] : []
+    content {
+      type                    = local.customer_managed_key_identity_type
+      user_assigned_identity_id = local.customer_managed_key_identity_type == "UserAssigned" ? local.customer_managed_key_identity_id : null
+    }
+  }
+
   tags = var.tags
 
   lifecycle {
     precondition {
       condition     = !(contains(["pre", "prod"], lower(var.environment)) && !local.customer_managed_key_supplied)
       error_message = "customer_managed_key_id must be provided when environment is pre or prod."
+    }
+
+    precondition {
+      condition     = !local.use_customer_managed_key || local.identity_type != null
+      error_message = "A managed identity must be configured when customer managed keys are enabled."
     }
   }
 }
