@@ -33,6 +33,19 @@ locals {
   customer_managed_key_supplied = var.customer_managed_key_id != null && trimspace(var.customer_managed_key_id) != ""
   use_customer_managed_key       = local.customer_managed_key_supplied || contains(["pre", "prod"], lower(var.environment))
 
+  customer_managed_key_input = !local.use_customer_managed_key ? null : trimspace(var.customer_managed_key_id)
+  customer_managed_key_sanitized = local.customer_managed_key_input == null
+    ? null
+    : trimsuffix(local.customer_managed_key_input, "/")
+
+  customer_managed_key_versionless_id = local.customer_managed_key_sanitized == null
+    ? null
+    : (
+      can(regex("/keys/[^/]+/[^/]+$", local.customer_managed_key_sanitized))
+      ? replace(local.customer_managed_key_sanitized, "/[^/]+$", "")
+      : local.customer_managed_key_sanitized
+    )
+
   customer_managed_key_identity_type = !local.use_customer_managed_key ? null : (
     local.use_system_assigned_identity ? "SystemAssigned" : (
       local.use_user_assigned_identity ? "UserAssigned" : null
@@ -71,7 +84,7 @@ resource "azurerm_data_factory" "this" {
     }
   }
 
-  customer_managed_key_id = local.use_customer_managed_key ? var.customer_managed_key_id : null
+  customer_managed_key_id = local.use_customer_managed_key ? local.customer_managed_key_versionless_id : null
 
   dynamic "customer_managed_key_identity" {
     for_each = local.use_customer_managed_key && local.customer_managed_key_identity_type != null ? [1] : []
@@ -92,6 +105,16 @@ resource "azurerm_data_factory" "this" {
     precondition {
       condition     = !local.use_customer_managed_key || local.identity_type != null
       error_message = "A managed identity must be configured when customer managed keys are enabled."
+    }
+
+    precondition {
+      condition     = !local.use_customer_managed_key || local.customer_managed_key_versionless_id != null
+      error_message = "customer_managed_key_id could not be normalized to a versionless key identifier."
+    }
+
+    precondition {
+      condition     = !local.use_customer_managed_key || (local.customer_managed_key_versionless_id != null && can(regex("/keys/", local.customer_managed_key_versionless_id)))
+      error_message = "customer_managed_key_id must reference an Azure Key Vault key."
     }
   }
 }

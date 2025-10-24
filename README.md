@@ -19,7 +19,7 @@ Creates an Azure Data Factory V2 instance with optional Managed Identity and Git
 | `public_network_enabled` | `bool` | `true` | Enables public network access. |
 | `identity` | `object` | `null` | Optional managed identity configuration controlling system-assigned and/or user-assigned identities. |
 | `environment` | `string` | `"dev"` | Deployment environment driving conditional behaviors (supports `dev`, `test`, `pre`, `prod`). |
-| `customer_managed_key_id` | `string` | `null` | Optional customer managed key ID automatically required when `environment` is `pre` or `prod`. |
+| `customer_managed_key_id` | `string` | `null` | Optional **versionless** customer managed key ID automatically required when `environment` is `pre` or `prod`. |
 | `github_configuration` | `object` | `null` | Optional GitHub configuration for source control integration. |
 | `tags` | `map(string)` | `{}` | Optional tags for the Data Factory. |
 
@@ -34,7 +34,7 @@ The module dynamically derives the identity `type` for the Data Factory resource
 2. Only user-assigned (`user_assigned_identity_ids` contains at least one value).
 3. Both system- and user-assigned identities (`enable_system_assigned_identity = true` and a non-empty `user_assigned_identity_ids`). In this case, the customer managed key (if configured) is associated with the system-assigned identity.
 
-For environments marked as `pre` or `prod`, supply `customer_managed_key_id` with the Azure Key Vault key ID that should encrypt the factory. The module enforces this requirement with a Terraform precondition and will also apply the key to other environments whenever a value is provided.
+For environments marked as `pre` or `prod`, supply `customer_managed_key_id` with the versionless Azure Key Vault key ID (for example, using `azurerm_key_vault_key.example.versionless_id`) that should encrypt the factory. The module normalizes versioned inputs to avoid unwanted key regeneration, enforces this requirement with a Terraform precondition, and will also apply the key to other environments whenever a value is provided.
 
 When a customer managed key is enabled, the module ensures that a compatible managed identity is configured and automatically maps the key to the system-assigned identity when both identity types are in use.
 
