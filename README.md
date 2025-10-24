@@ -65,47 +65,12 @@ Creates custom linked services within an existing Azure Data Factory instance.
 | `linked_service_ids` | Map of linked service names to their IDs. |
 | `linked_service_names` | List of linked service names managed by this module. |
 
-## Example
+## Examples
 
-An example configuration can be found under [`examples/simple`](examples/simple/main.tf):
+Dedicated examples demonstrate how to configure the Data Factory module with each managed identity combination:
 
-```hcl
-module "data_factory" {
-  source = "../../modules/data_factory_v2"
+- [`examples/user_assigned_identity`](examples/user_assigned_identity/main.tf) – attaches only a user-assigned managed identity.
+- [`examples/system_identity`](examples/system_identity/main.tf) – enables only the system-assigned identity.
+- [`examples/system_and_user_identities`](examples/system_and_user_identities/main.tf) – combines system- and user-assigned identities and illustrates customer-managed key usage in a production environment.
 
-  factory_name        = "df-demo-001"
-  resource_group_name = "rg-demo"
-  location            = "westeurope"
-  environment         = "pre"
-
-  identity = {
-    enable_system_assigned_identity = true
-    user_assigned_identity_ids = [
-      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.ManagedIdentity/userAssignedIdentities/example"
-    ]
-  }
-
-  customer_managed_key_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.KeyVault/vaults/kv-demo/keys/key-demo/1234567890"
-
-  tags = {
-    environment = "pre"
-    component   = "data-factory"
-  }
-}
-
-module "custom_linked_services" {
-  source = "../../modules/data_factory_custom_linked_services"
-
-  data_factory_id = module.data_factory.data_factory_id
-
-  linked_services = {
-    "demoBlob" = {
-      type = "AzureBlobStorage"
-      type_properties_json = jsonencode({
-        connectionString = "DefaultEndpointsProtocol=https;AccountName=example;AccountKey=example;EndpointSuffix=core.windows.net"
-      })
-      annotations = ["example"]
-    }
-  }
-}
-```
+The [`examples/simple`](examples/simple/main.tf) scenario continues to showcase composing the Data Factory deployment with custom linked services.
