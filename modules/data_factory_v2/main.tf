@@ -13,6 +13,18 @@ provider "azurerm" {
   features {}
 }
 
+locals {
+  identity_type_tokens = var.identity == null ? [] : split(",", replace(var.identity.type, " ", ""))
+  identity_requires_user_assigned_ids = length([
+    for token in local.identity_type_tokens : lower(token)
+    if token != "" && token == "userassigned"
+  ]) > 0
+  identity_user_assigned_identity_ids = var.identity == null ? null : lookup(var.identity, "user_assigned_identity_ids", null)
+
+  customer_managed_key_supplied = var.customer_managed_key_id != null && trimspace(var.customer_managed_key_id) != ""
+  use_customer_managed_key       = local.customer_managed_key_supplied || contains(["pre", "prod"], lower(var.environment))
+}
+
 resource "azurerm_data_factory" "this" {
   name                = var.factory_name
   location            = var.location
@@ -25,8 +37,7 @@ resource "azurerm_data_factory" "this" {
     for_each = var.identity == null ? [] : [var.identity]
     content {
       type         = identity.value.type
-      principal_id = lookup(identity.value, "principal_id", null)
-      tenant_id    = lookup(identity.value, "tenant_id", null)
+      identity_ids = local.identity_requires_user_assigned_ids ? local.identity_user_assigned_identity_ids : null
     }
   }
 
@@ -41,5 +52,14 @@ resource "azurerm_data_factory" "this" {
     }
   }
 
+  customer_managed_key_id = local.use_customer_managed_key ? var.customer_managed_key_id : null
+
   tags = var.tags
+
+  lifecycle {
+    precondition {
+      condition     = !(contains(["pre", "prod"], lower(var.environment)) && !local.customer_managed_key_supplied)
+      error_message = "customer_managed_key_id must be provided when environment is pre or prod."
+    }
+  }
 }

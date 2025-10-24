@@ -17,9 +17,19 @@ Creates an Azure Data Factory V2 instance with optional Managed Identity and Git
 | `location` | `string` | n/a | The Azure region for the Data Factory. |
 | `managed_virtual_network_enabled` | `bool` | `true` | Enables Managed Virtual Network integration. |
 | `public_network_enabled` | `bool` | `true` | Enables public network access. |
-| `identity` | `object` | `null` | Optional managed identity configuration. |
+| `identity` | `object` | `null` | Optional managed identity configuration supporting `SystemAssigned`, `UserAssigned`, or a combination of both. |
+| `environment` | `string` | `"dev"` | Deployment environment driving conditional behaviors (supports `dev`, `test`, `pre`, `prod`). |
+| `customer_managed_key_id` | `string` | `null` | Optional customer managed key ID automatically required when `environment` is `pre` or `prod`. |
 | `github_configuration` | `object` | `null` | Optional GitHub configuration for source control integration. |
 | `tags` | `map(string)` | `{}` | Optional tags for the Data Factory. |
+
+When providing an `identity` value, specify the `type` and (if applicable) a list of `user_assigned_identity_ids`. The module accepts:
+
+- `SystemAssigned` – enables only the system-assigned managed identity.
+- `UserAssigned` – attaches one or more user-assigned managed identities (requires `user_assigned_identity_ids`).
+- `SystemAssigned, UserAssigned` – enables both system-assigned and user-assigned identities.
+
+For environments marked as `pre` or `prod`, supply `customer_managed_key_id` with the Azure Key Vault key ID that should encrypt the factory. The module enforces this requirement with a Terraform precondition and will also apply the key to other environments whenever a value is provided.
 
 #### Outputs
 
@@ -59,9 +69,19 @@ module "data_factory" {
   factory_name        = "df-demo-001"
   resource_group_name = "rg-demo"
   location            = "westeurope"
+  environment         = "pre"
+
+  identity = {
+    type = "SystemAssigned, UserAssigned"
+    user_assigned_identity_ids = [
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.ManagedIdentity/userAssignedIdentities/example"
+    ]
+  }
+
+  customer_managed_key_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.KeyVault/vaults/kv-demo/keys/key-demo/1234567890"
 
   tags = {
-    environment = "demo"
+    environment = "pre"
     component   = "data-factory"
   }
 }

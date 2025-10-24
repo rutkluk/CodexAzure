@@ -28,11 +28,39 @@ variable "public_network_enabled" {
 variable "identity" {
   description = "Optional managed identity configuration for the Data Factory."
   type = object({
-    type         = string
-    principal_id = optional(string)
-    tenant_id    = optional(string)
+    type                       = string
+    user_assigned_identity_ids = optional(list(string))
   })
   default = null
+
+  validation {
+    condition     = var.identity == null ? true : length(regexall("^(SystemAssigned|UserAssigned|SystemAssigned, UserAssigned)$", var.identity.type)) == 1
+    error_message = "Identity type must be one of 'SystemAssigned', 'UserAssigned', or 'SystemAssigned, UserAssigned'."
+  }
+
+  validation {
+    condition = var.identity == null ? true : (
+      length(regexall("UserAssigned", var.identity.type)) == 0 || length(coalesce(var.identity.user_assigned_identity_ids, [])) > 0
+    )
+    error_message = "At least one user_assigned_identity_ids value must be provided when using a UserAssigned identity."
+  }
+}
+
+variable "environment" {
+  description = "Deployment environment name used for environment-specific behaviors (e.g., dev, test, pre, prod)."
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "test", "pre", "prod"], lower(var.environment))
+    error_message = "Environment must be one of dev, test, pre, or prod."
+  }
+}
+
+variable "customer_managed_key_id" {
+  description = "The ID of the customer-managed key to associate with the Data Factory when required."
+  type        = string
+  default     = null
 }
 
 variable "github_configuration" {
