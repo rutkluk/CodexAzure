@@ -65,6 +65,9 @@ Creates custom linked services within an existing Azure Data Factory instance.
 | `linked_service_ids` | Map of linked service names to their IDs. |
 | `linked_service_names` | List of linked service names managed by this module. |
 
+The [`examples/dataverse_custom_linked_service`](examples/dataverse_custom_linked_service/main.tf) scenario shows how to define a
+Dataverse linked service that authenticates with a service principal whose secret is stored in Azure Key Vault.
+
 ### `data_factory_integration_runtimes`
 
 Creates Azure and self-hosted integration runtimes for an existing Azure Data Factory instance.
@@ -114,6 +117,7 @@ Dedicated examples demonstrate how to configure the Data Factory module with eac
 - [`examples/user_assigned_identity`](examples/user_assigned_identity/main.tf) – attaches only a user-assigned managed identity.
 - [`examples/system_identity`](examples/system_identity/main.tf) – enables only the system-assigned identity.
 - [`examples/system_and_user_identities`](examples/system_and_user_identities/main.tf) – combines system- and user-assigned identities and illustrates customer-managed key usage in a production environment.
+- [`examples/dataverse_custom_linked_service`](examples/dataverse_custom_linked_service/main.tf) – configures a Dataverse linked service using service principal authentication.
 
 The [`examples/simple`](examples/simple/main.tf) scenario continues to showcase composing the Data Factory deployment with custom linked services.
 It now also provisions Azure and self-hosted integration runtimes using the dedicated module and creates both schedule and tumbling window triggers for sample pipelines.
