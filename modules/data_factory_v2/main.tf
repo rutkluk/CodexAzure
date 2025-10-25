@@ -13,6 +13,85 @@ provider "azurerm" {
   features {}
 }
 
+resource "azurerm_subnet" "subnet" {
+  name = local.subnet_pe_name
+  resource_group_name = var.subnet.resource_group_name
+  virtual_network_name = var.subnet.vnet_name
+  address_prefixes = [var.subnet.cidr]
+  }
+
+resource "azurerm_subnet" "subnet_pe" {
+  name = local.subnet_name
+  resource_group_name = var.subnet_pe.resource_group_name
+  virtual_network_name = var.subnet_pe.vnet_name
+  address_prefixes = [var.subnet_pe.cidr]
+}
+
+resource "azurerm_network_security_group" "nsg" {
+  name = local.nsg.name
+  location = var.location
+  resource_group_name = var.resource_group_name
+  tags = local.tags
+}
+
+resource "azurerm_subnet_network_security_group_association" "nsgassoc" {
+  subnet_id = azurerm_subnet.subnet.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
+}
+
+resource "azurerm_subnet_network_security_group_association" "nsgassoc_pe" {
+  subnet_id = azurerm_subnet.subnet_pe.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
+}
+
+resource "azurerm_network_security_rule" "default" {
+ name = "DenyAll"
+ protocol = "*"
+ access = ""
+ network_security_group_name = azureem_network_security_group.nsg.name
+ direction = "Inbound"
+ resource_group_name = var.resource_group_name
+priority = 4000
+
+}
+
+
+resource "azurerm_key_vault_key" "cmk" {
+  count = (var.environment == "prod" || var.environment == "pre") ? 1 : 0
+  key_type = "RSA"
+  key_size = 2048
+  key_vault_id = var.key_vault_id
+  name ="cmk"
+  key_opts = [
+    "unwrapKey",
+    "wrapKey",
+    "decrypt"
+  ]
+  expiration_date = timeadd(timestamp(), "2160h")
+  rotation_policy {
+    automatic {
+      time_before_expiry = "P30D"
+    }
+    expire_after = "P90D"
+    notify_before_expiry = "P29D"
+  }
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [ 
+      expiration_date,
+      key_opts
+     ]
+  }
+  tags = local.tags
+}
+
+resource "azurerm_data_factory_integration_runtime_azure" "default" {
+  name = "AutoResolveIntegrationRuntime"
+  data_factory_id = azurerm_data_factory.this.id
+  location = "AutoResolve"
+  virtual_network_enabled = true
+}
+
 resource "azurerm_data_factory" "this" {
   name                = var.factory_name
   location            = var.location
