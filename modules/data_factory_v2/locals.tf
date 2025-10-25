@@ -1,12 +1,12 @@
 locals {
   identity_config = var.identity == null ? null : {
-    raw_type                      = trimspace(coalesce(var.identity.type, ""))
+    raw_type                      = trimspace(try(var.identity.type, ""))
     enable_system_assigned        = try(var.identity.enable_system_assigned_identity, null)
     user_assigned_identity_ids    = try(var.identity.user_assigned_identity_ids, [])
     cmk_user_assigned_identity_id = (
-      trimspace(coalesce(var.identity.customer_managed_key_identity_id, "")) == ""
+      trimspace(try(var.identity.customer_managed_key_identity_id, "")) == ""
       ? null
-      : trimspace(coalesce(var.identity.customer_managed_key_identity_id, ""))
+      : trimspace(var.identity.customer_managed_key_identity_id)
     )
   }
 
