@@ -78,8 +78,10 @@ Each entry inherits sensible defaults: when `name` is omitted the map key is use
 | `linked_service_ids` | Map of linked service names to their IDs. |
 | `linked_service_names` | List of linked service names managed by this module. |
 
-The [`examples/dataverse_custom_linked_service`](examples/dataverse_custom_linked_service/main.tf) scenario shows how to define a
-Dataverse linked service that authenticates with a service principal whose secret is stored in Azure Key Vault.
+The [`examples/dataverse_custom_linked_service`](examples/dataverse_custom_linked_service/main.tf) scenario shows how to define a Dataverse linked service that authenticates with a service principal whose secret is stored in Azure Key Vault. Additional standalone samples demonstrate other authentication models:
+
+- [`examples/mssql_custom_linked_service`](examples/mssql_custom_linked_service/main.tf) – configures an Azure SQL Database linked service that reads both the SQL authentication username and password from Key Vault secrets.
+- [`examples/azure_storage_uami_linked_service`](examples/azure_storage_uami_linked_service/main.tf) – configures an Azure Blob Storage linked service that authenticates with a user-assigned managed identity.
 
 ### `data_factory_integration_runtimes`
 
@@ -135,6 +137,8 @@ Dedicated examples demonstrate how to configure the Data Factory module with eac
 - [`examples/system_identity`](examples/system_identity/main.tf) – enables only the system-assigned identity.
 - [`examples/system_and_user_identities`](examples/system_and_user_identities/main.tf) – combines system- and user-assigned identities and illustrates customer-managed key usage in a production environment.
 - [`examples/dataverse_custom_linked_service`](examples/dataverse_custom_linked_service/main.tf) – configures a Dataverse linked service using service principal authentication.
+- [`examples/mssql_custom_linked_service`](examples/mssql_custom_linked_service/main.tf) – configures a SQL Database linked service using Key Vault-stored SQL authentication credentials.
+- [`examples/azure_storage_uami_linked_service`](examples/azure_storage_uami_linked_service/main.tf) – configures a Blob Storage linked service secured by a user-assigned managed identity.
 
 The [`examples/simple`](examples/simple/main.tf) scenario continues to showcase composing the Data Factory deployment with custom linked services.
 It now also provisions Azure and self-hosted integration runtimes using the dedicated module, creates both schedule and tumbling window triggers for sample pipelines, configures global parameters, and demonstrates attaching a Purview account and explicit customer managed key identity overrides.
