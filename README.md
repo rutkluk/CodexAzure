@@ -1,6 +1,6 @@
 # CodexAzure
 
-This repository contains reusable Terraform components for Azure resources. The initial release introduces a module for deploying Azure Data Factory (V2) instances with the `azurerm` provider pinned to version `4.37.0`. It also includes a companion module for managing custom linked services inside an existing factory.
+This repository contains reusable Terraform components for Azure resources. The initial release introduces a module for deploying Azure Data Factory (V2) instances with the `azurerm` provider pinned to version `4.37.0`. It also includes companion modules for managing custom linked services inside an existing factory, provisioning integration runtimes, and configuring pipeline triggers.
 
 ## Modules
 
@@ -84,6 +84,29 @@ Creates Azure and self-hosted integration runtimes for an existing Azure Data Fa
 | `integration_runtime_ids` | Map of integration runtime keys to their resource IDs. |
 | `integration_runtime_names` | List of integration runtime names managed by this module. |
 
+### `data_factory_pipeline_triggers`
+
+Creates schedule- and tumbling-window-based triggers for Azure Data Factory pipelines.
+
+#### Inputs
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `data_factory_id` | `string` | n/a | The ID of the Data Factory where triggers will be created. |
+| `triggers` | `map(object)` | n/a | Map describing each trigger. Supported `type` values are `schedule` and `tumbling_window`. |
+
+When defining `triggers`:
+
+- Schedule triggers require a nested `schedule` object mirroring the attributes of the Terraform `schedule` block (for example `frequency`, `interval`, `start_time`, `time_zone`, and recurrence settings).
+- Tumbling window triggers require `frequency`, `interval`, and `start_time`. Optional fields such as `delay`, `end_time`, `max_concurrency`, and a `retry` block are supported.
+
+#### Outputs
+
+| Name | Description |
+|------|-------------|
+| `trigger_ids` | Map of trigger keys to their resource IDs. |
+| `trigger_names` | Map of trigger keys to the created trigger names. |
+
 ## Examples
 
 Dedicated examples demonstrate how to configure the Data Factory module with each managed identity combination:
@@ -93,4 +116,4 @@ Dedicated examples demonstrate how to configure the Data Factory module with eac
 - [`examples/system_and_user_identities`](examples/system_and_user_identities/main.tf) – combines system- and user-assigned identities and illustrates customer-managed key usage in a production environment.
 
 The [`examples/simple`](examples/simple/main.tf) scenario continues to showcase composing the Data Factory deployment with custom linked services.
-It now also provisions Azure and self-hosted integration runtimes using the dedicated module.
+It now also provisions Azure and self-hosted integration runtimes using the dedicated module and creates both schedule and tumbling window triggers for sample pipelines.

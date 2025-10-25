@@ -73,3 +73,38 @@ module "custom_linked_services" {
     }
   }
 }
+
+module "pipeline_triggers" {
+  source = "../../modules/data_factory_pipeline_triggers"
+
+  data_factory_id = module.data_factory.data_factory_id
+
+  triggers = {
+    nightly = {
+      type          = "schedule"
+      pipeline_name = "pl-nightly-refresh"
+      schedule = {
+        frequency   = "Day"
+        interval    = 1
+        time_zone   = "UTC"
+        hours       = [2]
+        minutes     = [0]
+        start_time  = "2023-01-01T00:00:00Z"
+      }
+      annotations = ["nightly"]
+    }
+
+    hourly_window = {
+      type          = "tumbling_window"
+      pipeline_name = "pl-hourly-window"
+      frequency     = "Hour"
+      interval      = 1
+      start_time    = "2023-01-01T00:00:00Z"
+      delay         = "00:05:00"
+      retry = {
+        count               = 3
+        interval_in_seconds = 120
+      }
+    }
+  }
+}
