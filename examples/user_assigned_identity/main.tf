@@ -22,6 +22,7 @@ module "data_factory" {
   environment         = "dev"
 
   identity = {
+    type = "UserAssigned"
     user_assigned_identity_ids = [
       "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.ManagedIdentity/userAssignedIdentities/example"
     ]

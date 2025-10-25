@@ -28,19 +28,12 @@ variable "public_network_enabled" {
 variable "identity" {
   description = "Optional managed identity configuration for the Data Factory."
   type = object({
-    enable_system_assigned_identity = optional(bool, false)
-    user_assigned_identity_ids      = optional(list(string), [])
+    type                             = optional(string)
+    enable_system_assigned_identity  = optional(bool)
+    user_assigned_identity_ids       = optional(list(string), [])
+    customer_managed_key_identity_id = optional(string)
   })
   default = null
-
-  validation {
-    condition = var.identity == null ? true : (
-      (try(var.identity.enable_system_assigned_identity, false) ? 1 : 0) +
-      (length(try(var.identity.user_assigned_identity_ids, [])) > 0 ? 1 : 0)
-    ) > 0
-
-    error_message = "Enable the system-assigned identity or provide at least one user-assigned identity."
-  }
 }
 
 variable "environment" {
@@ -60,6 +53,12 @@ variable "customer_managed_key_id" {
   default     = null
 }
 
+variable "customer_managed_key_identity_id" {
+  description = "Optional user-assigned managed identity ID that should authenticate to the customer-managed key when required."
+  type        = string
+  default     = null
+}
+
 variable "github_configuration" {
   description = "Optional GitHub configuration for integration with Data Factory."
   type = object({
@@ -70,6 +69,22 @@ variable "github_configuration" {
     root_folder     = optional(string)
   })
   default = null
+}
+
+variable "purview_id" {
+  description = "Optional Azure Purview account ID to associate with the Data Factory."
+  type        = string
+  default     = null
+}
+
+variable "global_parameters" {
+  description = "Optional map of global parameters to configure on the Data Factory."
+  type = map(object({
+    type  = string
+    value = string
+    name  = optional(string)
+  }))
+  default = {}
 }
 
 variable "tags" {

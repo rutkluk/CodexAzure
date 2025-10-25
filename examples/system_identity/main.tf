@@ -22,7 +22,7 @@ module "data_factory" {
   environment         = "test"
 
   identity = {
-    enable_system_assigned_identity = true
+    type = "SystemAssigned"
   }
 
   tags = {

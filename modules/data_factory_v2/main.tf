@@ -20,6 +20,7 @@ resource "azurerm_data_factory" "this" {
 
   managed_virtual_network_enabled = var.managed_virtual_network_enabled
   public_network_enabled          = var.public_network_enabled
+  purview_id                      = var.purview_id
 
   dynamic "identity" {
     for_each = local.identity_type == null ? [] : [1]
@@ -50,9 +51,33 @@ resource "azurerm_data_factory" "this" {
     }
   }
 
+  dynamic "global_parameter" {
+    for_each = var.global_parameters
+    content {
+      name  = lookup(global_parameter.value, "name", global_parameter.key)
+      type  = global_parameter.value.type
+      value = global_parameter.value.value
+    }
+  }
+
   tags = var.tags
 
   lifecycle {
+    precondition {
+      condition = var.identity == null || length(local.identity_type_tokens) > 0
+      error_message = "The identity configuration must enable the system-assigned identity, attach user-assigned identities, or specify a valid identity type."
+    }
+
+    precondition {
+      condition = local.identity_config == null || length(local.identity_user_assigned_identity_ids) == 0 || local.use_user_assigned_identity
+      error_message = "User-assigned identity IDs were provided but the identity type does not include UserAssigned."
+    }
+
+    precondition {
+      condition = !local.use_user_assigned_identity || length(local.identity_user_assigned_identity_ids) > 0
+      error_message = "At least one user-assigned identity ID must be provided when the identity type includes UserAssigned."
+    }
+
     precondition {
       condition     = !(contains(["pre", "prod"], lower(var.environment)) && !local.customer_managed_key_supplied)
       error_message = "customer_managed_key_id must be provided when environment is pre or prod."
@@ -71,6 +96,21 @@ resource "azurerm_data_factory" "this" {
     precondition {
       condition     = !local.use_customer_managed_key || (local.customer_managed_key_versionless_id != null && can(regex("/keys/", local.customer_managed_key_versionless_id)))
       error_message = "customer_managed_key_id must reference an Azure Key Vault key."
+    }
+
+    precondition {
+      condition = var.customer_managed_key_identity_id == null || local.use_user_assigned_identity
+      error_message = "customer_managed_key_identity_id was provided but no user-assigned identity is enabled."
+    }
+
+    precondition {
+      condition = local.identity_config == null || local.identity_config.cmk_user_assigned_identity_id == null || local.use_user_assigned_identity
+      error_message = "identity.customer_managed_key_identity_id requires a user-assigned identity."
+    }
+
+    precondition {
+      condition = !local.use_customer_managed_key || local.customer_managed_key_identity_type != "UserAssigned" || local.customer_managed_key_identity_id != null
+      error_message = "A user-assigned identity ID must be supplied for customer managed keys when identity type is UserAssigned."
     }
   }
 }

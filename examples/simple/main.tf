@@ -26,9 +26,23 @@ module "data_factory" {
     user_assigned_identity_ids = [
       "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.ManagedIdentity/userAssignedIdentities/example"
     ]
+    customer_managed_key_identity_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.ManagedIdentity/userAssignedIdentities/example"
   }
 
   customer_managed_key_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.KeyVault/vaults/kv-demo/keys/key-demo"
+  purview_id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.Purview/accounts/purview-demo"
+
+  global_parameters = {
+    environment = {
+      type  = "String"
+      value = "pre"
+    }
+
+    processTimeout = {
+      type  = "Float"
+      value = "30"
+    }
+  }
 
   tags = {
     environment = "pre"

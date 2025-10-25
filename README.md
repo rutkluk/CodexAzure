@@ -20,23 +20,30 @@ Creates an Azure Data Factory V2 instance with optional Managed Identity and Git
 | `identity` | `object` | `null` | Optional managed identity configuration controlling system-assigned and/or user-assigned identities. |
 | `environment` | `string` | `"dev"` | Deployment environment driving conditional behaviors (supports `dev`, `test`, `pre`, `prod`). |
 | `customer_managed_key_id` | `string` | `null` | Optional **versionless** customer managed key ID automatically required when `environment` is `pre` or `prod`. |
+| `customer_managed_key_identity_id` | `string` | `null` | Optional override specifying the user-assigned identity ID that should authenticate against the customer managed key. |
 | `github_configuration` | `object` | `null` | Optional GitHub configuration for source control integration. |
+| `purview_id` | `string` | `null` | Optional Azure Purview resource ID to associate with the factory. |
+| `global_parameters` | `map(object)` | `{}` | Optional map configuring Data Factory [global parameters](https://learn.microsoft.com/azure/data-factory/iterative-development-debugging#set-global-parameters). |
 | `tags` | `map(string)` | `{}` | Optional tags for the Data Factory. |
 
-When providing an `identity` value, configure one or both of the following properties:
+When providing an `identity` value, configure one or more of the following properties:
 
-- `enable_system_assigned_identity` – set to `true` to enable the system-assigned identity.
+- `type` – optional explicit identity type string (for example `SystemAssigned`, `UserAssigned`, or `SystemAssigned, UserAssigned`).
+- `enable_system_assigned_identity` – set to `true` to enable the system-assigned identity when `type` is omitted.
 - `user_assigned_identity_ids` – provide one or more resource IDs for user-assigned managed identities to attach.
+- `customer_managed_key_identity_id` – optional user-assigned identity ID to use with the customer managed key when no module-level override is supplied.
 
-The module dynamically derives the identity `type` for the Data Factory resource from these inputs, allowing the following combinations:
+The module dynamically derives (or normalizes) the identity `type` for the Data Factory resource from these inputs, allowing the following combinations:
 
-1. Only system-assigned (`enable_system_assigned_identity = true`).
-2. Only user-assigned (`user_assigned_identity_ids` contains at least one value).
-3. Both system- and user-assigned identities (`enable_system_assigned_identity = true` and a non-empty `user_assigned_identity_ids`). In this case, the customer managed key (if configured) is associated with the system-assigned identity.
+1. Only system-assigned (for example `type = "SystemAssigned"` or `enable_system_assigned_identity = true`).
+2. Only user-assigned (for example `type = "UserAssigned"` or providing `user_assigned_identity_ids`).
+3. Both system- and user-assigned identities (`type = "SystemAssigned, UserAssigned"` or combining `enable_system_assigned_identity = true` with a non-empty `user_assigned_identity_ids`). In this case, the customer managed key (if configured) is associated with the system-assigned identity by default.
 
 For environments marked as `pre` or `prod`, supply `customer_managed_key_id` with the versionless Azure Key Vault key ID (for example, using `azurerm_key_vault_key.example.versionless_id`) that should encrypt the factory. The module normalizes versioned inputs to avoid unwanted key regeneration, enforces this requirement with a Terraform precondition, and will also apply the key to other environments whenever a value is provided.
 
-When a customer managed key is enabled, the module ensures that a compatible managed identity is configured and automatically maps the key to the system-assigned identity when both identity types are in use.
+When a customer managed key is enabled, the module ensures that a compatible managed identity is configured, automatically maps the key to the system-assigned identity when both identity types are in use, and allows overriding the user-assigned identity used for encryption via either `customer_managed_key_identity_id` or the nested identity configuration.
+
+Global parameters can be supplied through `global_parameters`, using objects that specify the `type`, `value`, and optional friendly `name` (defaults to the map key). The module also accepts an optional `purview_id` to integrate the factory with Azure Purview.
 
 #### Outputs
 
@@ -46,6 +53,10 @@ When a customer managed key is enabled, the module ensures that a compatible man
 | `data_factory_name` | The name of the created Data Factory. |
 | `managed_virtual_network_enabled` | Indicates whether Managed Virtual Network is enabled. |
 | `public_network_enabled` | Indicates whether public network access is enabled. |
+| `identity_type` | The effective managed identity type configured on the Data Factory. |
+| `identity_principal_id` | The principal ID for the system-assigned identity, when configured. |
+| `identity_tenant_id` | The tenant ID for the Data Factory's managed identity. |
+| `identity_user_assigned_ids` | The list of user-assigned identity IDs attached to the Data Factory. |
 
 ### `data_factory_custom_linked_services`
 
@@ -126,4 +137,4 @@ Dedicated examples demonstrate how to configure the Data Factory module with eac
 - [`examples/dataverse_custom_linked_service`](examples/dataverse_custom_linked_service/main.tf) – configures a Dataverse linked service using service principal authentication.
 
 The [`examples/simple`](examples/simple/main.tf) scenario continues to showcase composing the Data Factory deployment with custom linked services.
-It now also provisions Azure and self-hosted integration runtimes using the dedicated module and creates both schedule and tumbling window triggers for sample pipelines.
+It now also provisions Azure and self-hosted integration runtimes using the dedicated module, creates both schedule and tumbling window triggers for sample pipelines, configures global parameters, and demonstrates attaching a Purview account and explicit customer managed key identity overrides.

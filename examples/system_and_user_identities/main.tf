@@ -22,13 +22,14 @@ module "data_factory" {
   environment         = "prod"
 
   identity = {
-    enable_system_assigned_identity = true
+    type = "SystemAssigned, UserAssigned"
     user_assigned_identity_ids = [
       "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.ManagedIdentity/userAssignedIdentities/example"
     ]
   }
 
   customer_managed_key_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.KeyVault/vaults/kv-demo/keys/key-demo"
+  customer_managed_key_identity_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.ManagedIdentity/userAssignedIdentities/example"
 
   tags = {
     environment = "prod"
