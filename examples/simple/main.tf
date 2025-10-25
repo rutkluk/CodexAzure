@@ -36,6 +36,28 @@ module "data_factory" {
   }
 }
 
+module "integration_runtimes" {
+  source = "../../modules/data_factory_integration_runtimes"
+
+  data_factory_id         = module.data_factory.data_factory_id
+  default_azure_location  = "westeurope"
+  integration_runtimes = {
+    defaultAzure = {
+      type                  = "azure"
+      description           = "Primary Azure IR for region-bound activities"
+      compute_type          = "General"
+      core_count            = 16
+      time_to_live          = 10
+      virtual_network_enabled = true
+    }
+
+    selfHostedHub = {
+      type        = "self_hosted"
+      description = "Self-hosted runtime for on-premises connectivity"
+    }
+  }
+}
+
 module "custom_linked_services" {
   source = "../../modules/data_factory_custom_linked_services"
 
