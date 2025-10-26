@@ -21,6 +21,18 @@ module "data_factory" {
   location            = "westeurope"
   environment         = "pre"
 
+  subnet = {
+    resource_group_name = "rg-demo"
+    vnet_name           = "vnet-demo"
+    cidr                = "10.0.1.0/24"
+  }
+
+  subnet_pe = {
+    resource_group_name = "rg-demo"
+    vnet_name           = "vnet-demo"
+    cidr                = "10.0.2.0/24"
+  }
+
   identity = {
     enable_system_assigned_identity = true
     user_assigned_identity_ids = [
@@ -30,6 +42,7 @@ module "data_factory" {
   }
 
   customer_managed_key_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.KeyVault/vaults/kv-demo/keys/key-demo"
+  key_vault_id            = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.KeyVault/vaults/kv-demo"
   purview_id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.Purview/accounts/purview-demo"
 
   global_parameters = {

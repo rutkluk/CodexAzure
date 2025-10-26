@@ -92,3 +92,27 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "key_vault_id" {
+  description = "ID of the Key Vault that holds the customer-managed key (used in pre/prod)."
+  type        = string
+  default     = null
+}
+
+variable "subnet" {
+  description = "Subnet configuration for the primary ADF subnet."
+  type = object({
+    resource_group_name = string
+    vnet_name           = string
+    cidr                = string
+  })
+}
+
+variable "subnet_pe" {
+  description = "Subnet configuration for the ADF private endpoint subnet."
+  type = object({
+    resource_group_name = string
+    vnet_name           = string
+    cidr                = string
+  })
+}

@@ -79,3 +79,11 @@ locals {
     ? local.customer_managed_key_identity_id_candidates[0]
     : null
 }
+
+locals {
+  # Names for networking resources created by this module
+  subnet_name      = "${var.factory_name}-subnet"
+  subnet_pe_name   = "${var.factory_name}-pe"
+  nsg              = { name = "${var.factory_name}-nsg" }
+  tags             = var.tags
+}

@@ -21,6 +21,18 @@ module "data_factory" {
   location            = "westeurope"
   environment         = "test"
 
+  subnet = {
+    resource_group_name = "rg-demo"
+    vnet_name           = "vnet-demo"
+    cidr                = "10.10.1.0/24"
+  }
+
+  subnet_pe = {
+    resource_group_name = "rg-demo"
+    vnet_name           = "vnet-demo"
+    cidr                = "10.10.2.0/24"
+  }
+
   identity = {
     type = "SystemAssigned"
   }

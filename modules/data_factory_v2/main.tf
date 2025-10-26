@@ -14,14 +14,14 @@ provider "azurerm" {
 }
 
 resource "azurerm_subnet" "subnet" {
-  name = local.subnet_pe_name
+  name = local.subnet_name
   resource_group_name = var.subnet.resource_group_name
   virtual_network_name = var.subnet.vnet_name
   address_prefixes = [var.subnet.cidr]
   }
 
 resource "azurerm_subnet" "subnet_pe" {
-  name = local.subnet_name
+  name = local.subnet_pe_name
   resource_group_name = var.subnet_pe.resource_group_name
   virtual_network_name = var.subnet_pe.vnet_name
   address_prefixes = [var.subnet_pe.cidr]
@@ -47,11 +47,15 @@ resource "azurerm_subnet_network_security_group_association" "nsgassoc_pe" {
 resource "azurerm_network_security_rule" "default" {
  name = "DenyAll"
  protocol = "*"
- access = ""
- network_security_group_name = azureem_network_security_group.nsg.name
+ access = "Deny"
+ network_security_group_name = azurerm_network_security_group.nsg.name
  direction = "Inbound"
  resource_group_name = var.resource_group_name
-priority = 4000
+ priority = 4000
+ source_port_range = "*"
+ destination_port_range = "*"
+ source_address_prefix = "*"
+ destination_address_prefix = "*"
 
 }
 
@@ -83,13 +87,6 @@ resource "azurerm_key_vault_key" "cmk" {
      ]
   }
   tags = local.tags
-}
-
-resource "azurerm_data_factory_integration_runtime_azure" "default" {
-  name = "AutoResolveIntegrationRuntime"
-  data_factory_id = azurerm_data_factory.this.id
-  location = "AutoResolve"
-  virtual_network_enabled = true
 }
 
 resource "azurerm_data_factory" "this" {
@@ -192,4 +189,11 @@ resource "azurerm_data_factory" "this" {
       error_message = "A user-assigned identity ID must be supplied for customer managed keys when identity type is UserAssigned."
     }
   }
+}
+
+resource "azurerm_data_factory_integration_runtime_azure" "default" {
+  name = "AutoResolveIntegrationRuntime"
+  data_factory_id = azurerm_data_factory.this.id
+  location = "AutoResolve"
+  virtual_network_enabled = true
 }

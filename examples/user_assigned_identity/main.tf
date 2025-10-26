@@ -13,6 +13,29 @@ provider "azurerm" {
   features {}
 }
 
+module "uami" {
+  source = "../../modules/user_assigned_identity"
+
+  name                = "uami-adf-demo"
+  resource_group_name = "rg-demo"
+  location            = "westeurope"
+
+  role_assignments = [
+    {
+      scope                = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo"
+      role_definition_name = "Reader"
+    },
+    {
+      scope                = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.KeyVault/vaults/kv-demo"
+      role_definition_name = "Key Vault Secrets User"
+    }
+  ]
+
+  tags = {
+    environment = "dev"
+  }
+}
+
 module "data_factory" {
   source = "../../modules/data_factory_v2"
 
@@ -21,11 +44,21 @@ module "data_factory" {
   location            = "westeurope"
   environment         = "dev"
 
+  subnet = {
+    resource_group_name = "rg-demo"
+    vnet_name           = "vnet-demo"
+    cidr                = "10.20.1.0/24"
+  }
+
+  subnet_pe = {
+    resource_group_name = "rg-demo"
+    vnet_name           = "vnet-demo"
+    cidr                = "10.20.2.0/24"
+  }
+
   identity = {
-    type = "UserAssigned"
-    user_assigned_identity_ids = [
-      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.ManagedIdentity/userAssignedIdentities/example"
-    ]
+    type                       = "UserAssigned"
+    user_assigned_identity_ids = [module.uami.id]
   }
 
   tags = {
