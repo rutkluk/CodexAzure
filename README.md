@@ -1,6 +1,6 @@
 # CodexAzure
 
-This repository contains reusable Terraform components for Azure resources. The initial release introduces a module for deploying Azure Data Factory (V2) instances with the `azurerm` provider pinned to version `4.37.0`. It also includes companion modules for managing custom linked services inside an existing factory, provisioning integration runtimes, and configuring pipeline triggers.
+This repository contains reusable Terraform components for Azure resources. The initial release introduces a module for deploying Azure Data Factory (V2) instances with the `azurerm` provider pinned to version `4.37.0`. It also includes companion modules for managing custom linked services inside an existing factory, provisioning integration runtimes, configuring pipeline triggers, and creating user-assigned managed identities with role assignments.
 
 ## Modules
 
@@ -37,11 +37,20 @@ The module dynamically derives (or normalizes) the identity `type` for the Data 
 
 1. Only system-assigned (for example `type = "SystemAssigned"` or `enable_system_assigned_identity = true`).
 2. Only user-assigned (for example `type = "UserAssigned"` or providing `user_assigned_identity_ids`).
-3. Both system- and user-assigned identities (`type = "SystemAssigned, UserAssigned"` or combining `enable_system_assigned_identity = true` with a non-empty `user_assigned_identity_ids`). In this case, the customer managed key (if configured) is associated with the system-assigned identity by default.
+3. Both system- and user-assigned identities (`type = "SystemAssigned, UserAssigned"` or combining `enable_system_assigned_identity = true` with a non-empty `user_assigned_identity_ids`). When a customer managed key is configured, the module prefers the user-assigned identity for encryption; if none is available, it falls back to the system-assigned identity.
 
 For environments marked as `pre` or `prod`, supply `customer_managed_key_id` with the versionless Azure Key Vault key ID (for example, using `azurerm_key_vault_key.example.versionless_id`) that should encrypt the factory. The module normalizes versioned inputs to avoid unwanted key regeneration, enforces this requirement with a Terraform precondition, and will also apply the key to other environments whenever a value is provided.
 
-When a customer managed key is enabled, the module ensures that a compatible managed identity is configured, automatically maps the key to the system-assigned identity when both identity types are in use, and allows overriding the user-assigned identity used for encryption via either `customer_managed_key_identity_id` or the nested identity configuration.
+When a customer managed key is enabled, the module ensures that a compatible managed identity is configured, prefers a user-assigned identity for encryption when available (hard default), and allows explicitly overriding the identity used via either `customer_managed_key_identity_id` or the nested identity configuration.
+
+##### CMK Identity and Key Vault Permissions
+
+- CMK enabled requires a managed identity. This module prefers a user-assigned identity (UAMI) when present; otherwise it uses the system-assigned identity.
+- The selected identity must have appropriate Key Vault permissions on the key:
+  - With RBAC: assign roles such as "Key Vault Crypto User" at the Key Vault scope.
+  - With access policies: ensure get, wrapKey, unwrapKey (and decrypt if needed).
+
+You can provision a UAMI and grant roles using the `user_assigned_identity` module, then pass its ID via `identity.user_assigned_identity_ids` and, if needed, `customer_managed_key_identity_id`.
 
 Global parameters can be supplied through `global_parameters`, using objects that specify the `type`, `value`, and optional friendly `name` (defaults to the map key). The module also accepts an optional `purview_id` to integrate the factory with Azure Purview.
 
@@ -129,6 +138,51 @@ When defining `triggers`:
 | `trigger_ids` | Map of trigger keys to their resource IDs. |
 | `trigger_names` | Map of trigger keys to the created trigger names. |
 
+### `user_assigned_identity`
+
+Creates a user-assigned managed identity and (optionally) assigns roles at one or more scopes.
+
+Inputs
+- `name` (string)
+- `resource_group_name` (string)
+- `location` (string)
+- `tags` (map(string), default `{}`)
+- `role_assignments` (list) — each item has:
+  - `scope` (string Azure resource ID)
+  - one of `role_definition_id` or `role_definition_name`
+  - optional `condition`, `condition_version`
+
+Outputs
+- `id`, `principal_id`, `client_id`, `name`
+
+Example
+```
+module "uami" {
+  source = "./modules/user_assigned_identity"
+
+  name                = "uami-adf"
+  resource_group_name = "rg-demo"
+  location            = "westeurope"
+
+  role_assignments = [
+    {
+      scope                = "/subscriptions/000.../resourceGroups/rg-demo/providers/Microsoft.KeyVault/vaults/kv-demo"
+      role_definition_name = "Key Vault Crypto User"
+    }
+  ]
+}
+
+module "data_factory" {
+  source = "./modules/data_factory_v2"
+  # ...
+  identity = {
+    type                       = "UserAssigned"
+    user_assigned_identity_ids = [module.uami.id]
+  }
+  customer_managed_key_id = "/subscriptions/000.../providers/Microsoft.KeyVault/vaults/kv-demo/keys/adf-key"
+}
+```
+
 ## Examples
 
 Dedicated examples demonstrate how to configure the Data Factory module with each managed identity combination:
@@ -138,7 +192,59 @@ Dedicated examples demonstrate how to configure the Data Factory module with eac
 - [`examples/system_and_user_identities`](examples/system_and_user_identities/main.tf) – combines system- and user-assigned identities and illustrates customer-managed key usage in a production environment.
 - [`examples/dataverse_custom_linked_service`](examples/dataverse_custom_linked_service/main.tf) – configures a Dataverse linked service using service principal authentication.
 - [`examples/mssql_custom_linked_service`](examples/mssql_custom_linked_service/main.tf) – configures a SQL Database linked service using Key Vault-stored SQL authentication credentials.
-- [`examples/azure_storage_uami_linked_service`](examples/azure_storage_uami_linked_service/main.tf) – configures a Blob Storage linked service secured by a user-assigned managed identity.
+- [`examples/azure_storage_uami_linked_service`](examples/azure_storage_uami_linked_service/main.tf) - configures a Blob Storage linked service secured by a user-assigned managed identity.
 
-The [`examples/simple`](examples/simple/main.tf) scenario continues to showcase composing the Data Factory deployment with custom linked services.
-It now also provisions Azure and self-hosted integration runtimes using the dedicated module, creates both schedule and tumbling window triggers for sample pipelines, configures global parameters, and demonstrates attaching a Purview account and explicit customer managed key identity overrides.
+The [`examples/simple`](examples/simple/main.tf) scenario showcases a combined deployment using all submodules:
+- Creates a user-assigned managed identity with sample RBAC.
+- Deploys the Data Factory (with networking, Purview, and CMK wiring that prefers UAMI).
+- Creates an ADF Credential for the UAMI.
+- Provisions Azure and self-hosted integration runtimes.
+- Adds a sample custom linked service.
+- Configures schedule and tumbling window triggers.
+
+### `data_factory_credentials`
+
+Creates Data Factory Credentials. Currently supports the User Assigned Managed Identity (UAMI) credential type.
+
+Inputs
+- `data_factory_id` (string) — target Data Factory ID
+- `credentials_uami` (map) — each value supports:
+  - `name` (optional string; defaults to map key)
+  - `identity_id` (string; UAMI resource ID)
+  - `annotations` (optional list(string))
+
+Outputs
+- `credential_ids` — map of keys to credential IDs
+- `credential_names` — map of keys to names
+
+Example
+```
+module "uami" {
+  source = "./modules/user_assigned_identity"
+  name                = "uami-adf"
+  resource_group_name = "rg-demo"
+  location            = "westeurope"
+}
+
+module "data_factory" {
+  source = "./modules/data_factory_v2"
+  # ... required inputs ...
+  identity = {
+    type                       = "UserAssigned"
+    user_assigned_identity_ids = [module.uami.id]
+  }
+}
+
+module "adf_credentials" {
+  source = "./modules/data_factory_credentials"
+
+  data_factory_id = module.data_factory.data_factory_id
+
+  credentials_uami = {
+    uamiDefault = {
+      identity_id = module.uami.id
+      annotations = ["primary-uami"]
+    }
+  }
+}
+```

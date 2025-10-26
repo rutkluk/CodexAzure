@@ -14,58 +14,58 @@ provider "azurerm" {
 }
 
 resource "azurerm_subnet" "subnet" {
-  name = local.subnet_name
-  resource_group_name = var.subnet.resource_group_name
+  name                 = local.subnet_name
+  resource_group_name  = var.subnet.resource_group_name
   virtual_network_name = var.subnet.vnet_name
-  address_prefixes = [var.subnet.cidr]
-  }
+  address_prefixes     = [var.subnet.cidr]
+}
 
 resource "azurerm_subnet" "subnet_pe" {
-  name = local.subnet_pe_name
-  resource_group_name = var.subnet_pe.resource_group_name
+  name                 = local.subnet_pe_name
+  resource_group_name  = var.subnet_pe.resource_group_name
   virtual_network_name = var.subnet_pe.vnet_name
-  address_prefixes = [var.subnet_pe.cidr]
+  address_prefixes     = [var.subnet_pe.cidr]
 }
 
 resource "azurerm_network_security_group" "nsg" {
-  name = local.nsg.name
-  location = var.location
+  name                = local.nsg.name
+  location            = var.location
   resource_group_name = var.resource_group_name
-  tags = local.tags
+  tags                = local.tags
 }
 
 resource "azurerm_subnet_network_security_group_association" "nsgassoc" {
-  subnet_id = azurerm_subnet.subnet.id
+  subnet_id                 = azurerm_subnet.subnet.id
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
 resource "azurerm_subnet_network_security_group_association" "nsgassoc_pe" {
-  subnet_id = azurerm_subnet.subnet_pe.id
+  subnet_id                 = azurerm_subnet.subnet_pe.id
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
 resource "azurerm_network_security_rule" "default" {
- name = "DenyAll"
- protocol = "*"
- access = "Deny"
- network_security_group_name = azurerm_network_security_group.nsg.name
- direction = "Inbound"
- resource_group_name = var.resource_group_name
- priority = 4000
- source_port_range = "*"
- destination_port_range = "*"
- source_address_prefix = "*"
- destination_address_prefix = "*"
+  name                        = "DenyAll"
+  protocol                    = "*"
+  access                      = "Deny"
+  network_security_group_name = azurerm_network_security_group.nsg.name
+  direction                   = "Inbound"
+  resource_group_name         = var.resource_group_name
+  priority                    = 4000
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
 
 }
 
 
 resource "azurerm_key_vault_key" "cmk" {
-  count = (var.environment == "prod" || var.environment == "pre") ? 1 : 0
-  key_type = "RSA"
-  key_size = 2048
+  count        = (var.environment == "prod" || var.environment == "pre") ? 1 : 0
+  key_type     = "RSA"
+  key_size     = 2048
   key_vault_id = var.key_vault_id
-  name ="cmk"
+  name         = "cmk"
   key_opts = [
     "unwrapKey",
     "wrapKey",
@@ -76,15 +76,15 @@ resource "azurerm_key_vault_key" "cmk" {
     automatic {
       time_before_expiry = "P30D"
     }
-    expire_after = "P90D"
+    expire_after         = "P90D"
     notify_before_expiry = "P29D"
   }
   lifecycle {
     create_before_destroy = true
-    ignore_changes = [ 
+    ignore_changes = [
       expiration_date,
       key_opts
-     ]
+    ]
   }
   tags = local.tags
 }
@@ -117,15 +117,8 @@ resource "azurerm_data_factory" "this" {
     }
   }
 
-  customer_managed_key_id = local.use_customer_managed_key ? local.customer_managed_key_versionless_id : null
-
-  dynamic "customer_managed_key_identity" {
-    for_each = local.use_customer_managed_key && local.customer_managed_key_identity_type != null ? [1] : []
-    content {
-      type                    = local.customer_managed_key_identity_type
-      user_assigned_identity_id = local.customer_managed_key_identity_type == "UserAssigned" ? local.customer_managed_key_identity_id : null
-    }
-  }
+  customer_managed_key_id          = local.use_customer_managed_key ? local.customer_managed_key_versionless_id : null
+  customer_managed_key_identity_id = local.customer_managed_key_identity_type == "UserAssigned" ? local.customer_managed_key_identity_id : null
 
   dynamic "global_parameter" {
     for_each = var.global_parameters
@@ -140,17 +133,17 @@ resource "azurerm_data_factory" "this" {
 
   lifecycle {
     precondition {
-      condition = var.identity == null || length(local.identity_type_tokens) > 0
+      condition     = var.identity == null || length(local.identity_type_tokens) > 0
       error_message = "The identity configuration must enable the system-assigned identity, attach user-assigned identities, or specify a valid identity type."
     }
 
     precondition {
-      condition = local.identity_config == null || length(local.identity_user_assigned_identity_ids) == 0 || local.use_user_assigned_identity
+      condition     = local.identity_config == null || length(local.identity_user_assigned_identity_ids) == 0 || local.use_user_assigned_identity
       error_message = "User-assigned identity IDs were provided but the identity type does not include UserAssigned."
     }
 
     precondition {
-      condition = !local.use_user_assigned_identity || length(local.identity_user_assigned_identity_ids) > 0
+      condition     = !local.use_user_assigned_identity || length(local.identity_user_assigned_identity_ids) > 0
       error_message = "At least one user-assigned identity ID must be provided when the identity type includes UserAssigned."
     }
 
@@ -175,25 +168,25 @@ resource "azurerm_data_factory" "this" {
     }
 
     precondition {
-      condition = var.customer_managed_key_identity_id == null || local.use_user_assigned_identity
+      condition     = var.customer_managed_key_identity_id == null || local.use_user_assigned_identity
       error_message = "customer_managed_key_identity_id was provided but no user-assigned identity is enabled."
     }
 
     precondition {
-      condition = local.identity_config == null || local.identity_config.cmk_user_assigned_identity_id == null || local.use_user_assigned_identity
+      condition     = local.identity_config == null || local.identity_config.cmk_user_assigned_identity_id == null || local.use_user_assigned_identity
       error_message = "identity.customer_managed_key_identity_id requires a user-assigned identity."
     }
 
     precondition {
-      condition = !local.use_customer_managed_key || local.customer_managed_key_identity_type != "UserAssigned" || local.customer_managed_key_identity_id != null
+      condition     = !local.use_customer_managed_key || local.customer_managed_key_identity_type != "UserAssigned" || local.customer_managed_key_identity_id != null
       error_message = "A user-assigned identity ID must be supplied for customer managed keys when identity type is UserAssigned."
     }
   }
 }
 
 resource "azurerm_data_factory_integration_runtime_azure" "default" {
-  name = "AutoResolveIntegrationRuntime"
-  data_factory_id = azurerm_data_factory.this.id
-  location = "AutoResolve"
+  name                    = "AutoResolveIntegrationRuntime"
+  data_factory_id         = azurerm_data_factory.this.id
+  location                = "AutoResolve"
   virtual_network_enabled = true
 }
