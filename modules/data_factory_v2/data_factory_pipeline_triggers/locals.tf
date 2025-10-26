@@ -28,3 +28,4 @@ locals {
   trigger_names_schedule = { for key, trigger in local.schedule_triggers : key => trigger.name }
   trigger_names_tumbling = { for key, trigger in local.tumbling_window_triggers : key => trigger.name }
 }
+

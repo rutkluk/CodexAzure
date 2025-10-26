@@ -11,7 +11,8 @@ locals {
   }
 
   # With azurerm v4.37.0, generic linked service resources are not available.
-  # This module acts as a pass-through for names until specific types are added.
+  # This submodule acts as a pass-through for names until specific types are added.
   linked_service_ids   = {}
   linked_service_names = [for _, svc in local.normalized_linked_services : svc.name]
 }
+

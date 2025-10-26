@@ -7,7 +7,7 @@ variable "triggers" {
   type        = any
   description = <<EOT
 Map describing pipeline triggers to create. Supported types:
-- `schedule`: requires a nested `schedule` object mirroring the azurerm_data_factory_trigger_schedule schedule block.
+- `schedule`: requires a nested `schedule` object.
 - `tumbling_window`: requires `frequency`, `interval`, and `start_time` properties.
 EOT
 
@@ -18,3 +18,4 @@ EOT
     error_message = "Each trigger must specify a supported type (schedule or tumbling_window)."
   }
 }
+

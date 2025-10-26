@@ -7,3 +7,4 @@ output "trigger_names" {
   description = "Map of trigger keys to their trigger names."
   value       = merge(local.trigger_names_schedule, local.trigger_names_tumbling)
 }
+

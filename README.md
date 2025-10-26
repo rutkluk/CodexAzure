@@ -236,7 +236,7 @@ module "data_factory" {
 }
 
 module "adf_credentials" {
-  source = "./modules/data_factory_credentials"
+  source = "./modules/data_factory_v2/data_factory_credentials"
 
   data_factory_id = module.data_factory.data_factory_id
 

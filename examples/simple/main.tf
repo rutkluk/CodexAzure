@@ -81,7 +81,7 @@ module "data_factory" {
 }
 
 module "adf_credentials" {
-  source = "../../modules/data_factory_credentials"
+  source = "../../modules/data_factory_v2/data_factory_credentials"
 
   data_factory_id = module.data_factory.data_factory_id
 
@@ -116,7 +116,7 @@ module "integration_runtimes" {
 }
 
 module "custom_linked_services" {
-  source = "../../modules/data_factory_custom_linked_services"
+  source = "../../modules/data_factory_v2/data_factory_custom_linked_services"
 
   data_factory_id = module.data_factory.data_factory_id
 
@@ -132,7 +132,7 @@ module "custom_linked_services" {
 }
 
 module "pipeline_triggers" {
-  source = "../../modules/data_factory_pipeline_triggers"
+  source = "../../modules/data_factory_v2/data_factory_pipeline_triggers"
 
   data_factory_id = module.data_factory.data_factory_id
 

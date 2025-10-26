@@ -17,3 +17,4 @@ variable "linked_services" {
     integration_runtime_name = optional(string)
   }))
 }
+

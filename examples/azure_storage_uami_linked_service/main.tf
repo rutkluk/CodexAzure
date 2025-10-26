@@ -16,7 +16,7 @@ provider "azurerm" {
 # This standalone example showcases creating an Azure Blob Storage
 # linked service that authenticates with a user-assigned managed identity.
 module "storage_linked_service" {
-  source = "../../modules/data_factory_custom_linked_services"
+  source = "../../modules/data_factory_v2/data_factory_custom_linked_services"
 
   data_factory_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.DataFactory/factories/df-demo"
 
