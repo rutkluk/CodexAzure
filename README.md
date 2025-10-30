@@ -12,6 +12,7 @@ Nested submodules (under `modules/data_factory_v2`):
 - `data_factory_credentials` — manage ADF Credentials (UAMI credentials in azurerm 4.37.0)
 - `data_factory_custom_linked_services` — placeholder pass-through on 4.37.0 (generic LS not available)
 - `data_factory_pipeline_triggers` — placeholder pass-through on 4.37.0 (rework needed for provider schema)
+- `private_endpoints` — create Managed Private Endpoints inside ADF Managed VNet
 
 #### Inputs
 
@@ -206,6 +207,10 @@ The [`examples/simple`](examples/simple/main.tf) scenario showcases a combined d
 - Provisions Azure and self-hosted integration runtimes.
 - Adds a sample custom linked service.
 - Configures schedule and tumbling window triggers.
+
+Additional focused examples:
+- [`examples/private_endpoints_keyvault`](examples/private_endpoints_keyvault/main.tf) — creates a Managed Private Endpoint from ADF to Key Vault.
+- [`examples/alerts_and_metrics`](examples/alerts_and_metrics/main.tf) — configures ADF metric alerts and diagnostics.
 
 ### `data_factory_v2/data_factory_credentials`
 
