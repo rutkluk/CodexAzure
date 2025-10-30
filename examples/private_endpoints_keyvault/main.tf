@@ -15,7 +15,7 @@ provider "azurerm" {
 
 # Example: Create a Managed Private Endpoint from ADF to Key Vault
 module "adf_private_endpoints" {
-  source = "../../modules/data_factory_v2/private_endpoints"
+  source = "../../components/data_factory/modules/private_endpoints"
 
   # Replace with your Data Factory resource ID
   data_factory_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.DataFactory/factories/df-demo"
