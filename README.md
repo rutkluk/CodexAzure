@@ -8,6 +8,11 @@ This repository contains reusable Terraform components for Azure resources. The 
 
 Creates an Azure Data Factory V2 instance with optional Managed Identity and GitHub repository integration.
 
+Nested submodules (under `modules/data_factory_v2`):
+- `data_factory_credentials` — manage ADF Credentials (UAMI credentials in azurerm 4.37.0)
+- `data_factory_custom_linked_services` — placeholder pass-through on 4.37.0 (generic LS not available)
+- `data_factory_pipeline_triggers` — placeholder pass-through on 4.37.0 (rework needed for provider schema)
+
 #### Inputs
 
 | Name | Type | Default | Description |
@@ -194,7 +199,7 @@ Dedicated examples demonstrate how to configure the Data Factory module with eac
 - [`examples/mssql_custom_linked_service`](examples/mssql_custom_linked_service/main.tf) – configures a SQL Database linked service using Key Vault-stored SQL authentication credentials.
 - [`examples/azure_storage_uami_linked_service`](examples/azure_storage_uami_linked_service/main.tf) - configures a Blob Storage linked service secured by a user-assigned managed identity.
 
-The [`examples/simple`](examples/simple/main.tf) scenario showcases a combined deployment using all submodules:
+The [`examples/simple`](examples/simple/main.tf) scenario showcases a combined deployment using all submodules (nested under `modules/data_factory_v2`):
 - Creates a user-assigned managed identity with sample RBAC.
 - Deploys the Data Factory (with networking, Purview, and CMK wiring that prefers UAMI).
 - Creates an ADF Credential for the UAMI.
@@ -202,7 +207,7 @@ The [`examples/simple`](examples/simple/main.tf) scenario showcases a combined d
 - Adds a sample custom linked service.
 - Configures schedule and tumbling window triggers.
 
-### `data_factory_credentials`
+### `data_factory_v2/data_factory_credentials`
 
 Creates Data Factory Credentials. Currently supports the User Assigned Managed Identity (UAMI) credential type.
 
