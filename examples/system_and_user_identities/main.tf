@@ -33,7 +33,7 @@ module "uami" {
 }
 
 module "data_factory" {
-  source = "../../modules/data_factory_v2"
+  source = "../../components/data_factory/default"
 
   factory_name        = "df-combined-demo"
   resource_group_name = "rg-demo"

@@ -33,7 +33,7 @@ module "uami" {
 }
 
 module "data_factory" {
-  source = "../../modules/data_factory_v2"
+  source = "../../components/data_factory/default"
 
   factory_name        = "df-demo-001"
   resource_group_name = "rg-demo"
@@ -81,7 +81,7 @@ module "data_factory" {
 }
 
 module "adf_credentials" {
-  source = "../../modules/data_factory_v2/data_factory_credentials"
+  source = "../../components/data_factory/modules/credentials"
 
   data_factory_id = module.data_factory.data_factory_id
 
@@ -94,7 +94,7 @@ module "adf_credentials" {
 }
 
 module "integration_runtimes" {
-  source = "../../modules/data_factory_integration_runtimes"
+  source = "../../components/data_factory/modules/runtimes"
 
   data_factory_id        = module.data_factory.data_factory_id
   default_azure_location = "westeurope"
@@ -116,7 +116,7 @@ module "integration_runtimes" {
 }
 
 module "custom_linked_services" {
-  source = "../../modules/data_factory_v2/data_factory_custom_linked_services"
+  source = "../../components/data_factory/modules/custom_linked_services"
 
   data_factory_id = module.data_factory.data_factory_id
 
@@ -131,37 +131,3 @@ module "custom_linked_services" {
   }
 }
 
-module "pipeline_triggers" {
-  source = "../../modules/data_factory_v2/data_factory_pipeline_triggers"
-
-  data_factory_id = module.data_factory.data_factory_id
-
-  triggers = {
-    nightly = {
-      type          = "schedule"
-      pipeline_name = "pl-nightly-refresh"
-      schedule = {
-        frequency  = "Day"
-        interval   = 1
-        time_zone  = "UTC"
-        hours      = [2]
-        minutes    = [0]
-        start_time = "2023-01-01T00:00:00Z"
-      }
-      annotations = ["nightly"]
-    }
-
-    hourly_window = {
-      type          = "tumbling_window"
-      pipeline_name = "pl-hourly-window"
-      frequency     = "Hour"
-      interval      = 1
-      start_time    = "2023-01-01T00:00:00Z"
-      delay         = "00:05:00"
-      retry = {
-        count               = 3
-        interval_in_seconds = 120
-      }
-    }
-  }
-}
