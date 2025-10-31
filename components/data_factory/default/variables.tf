@@ -22,6 +22,12 @@ variable "managed_virtual_network_enabled" {
 variable "public_network_enabled" {
   description = "Flag to enable public network access for the Data Factory."
   type        = bool
+  default     = false
+}
+
+variable "enable_control_plane_private_endpoint" {
+  description = "When true, creates Private Endpoints for ADF control plane (dataFactory and portal) and corresponding Private DNS zones."
+  type        = bool
   default     = true
 }
 

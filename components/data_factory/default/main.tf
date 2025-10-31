@@ -181,6 +181,12 @@ resource "azurerm_data_factory" "this" {
       condition     = !local.use_customer_managed_key || local.customer_managed_key_identity_type != "UserAssigned" || local.customer_managed_key_identity_id != null
       error_message = "A user-assigned identity ID must be supplied for customer managed keys when identity type is UserAssigned."
     }
+
+    # Public network and Private Endpoint control plane are wzajemnie wykluczające się ustawienia
+    precondition {
+      condition     = !(var.public_network_enabled && var.enable_control_plane_private_endpoint)
+      error_message = "Nie można jednocześnie ustawić public_network_enabled = true oraz enable_control_plane_private_endpoint = true. Przy włączonej sieci publicznej PE control plane nie jest tworzone."
+    }
   }
 }
 
@@ -189,4 +195,40 @@ resource "azurerm_data_factory_integration_runtime_azure" "default" {
   data_factory_id         = azurerm_data_factory.this.id
   location                = "AutoResolve"
   virtual_network_enabled = true
+}
+
+module "dns_zone_datafactory" {
+  count         = var.enable_control_plane_private_endpoint && !var.public_network_enabled ? 1 : 0
+  source        = "../../../modules/private-dns-zone/default"
+  dns_zone_name = "privatelink.datafactory.azure.net"
+}
+
+module "dns_zone_portal" {
+  count         = var.enable_control_plane_private_endpoint && !var.public_network_enabled ? 1 : 0
+  source        = "../../../modules/private-dns-zone/default"
+  dns_zone_name = "privatelink.adf.azure.com"
+}
+
+// Control Plane (Studio/API)
+resource "azurerm_private_endpoint" "pe" {
+  for_each                      = (var.enable_control_plane_private_endpoint && !var.public_network_enabled) ? toset(["dataFactory", "portal"]) : toset([])
+  name                          = "pec-${each.key}"
+  location                      = var.location
+  resource_group_name           = var.resource_group_name
+  subnet_id                     = azurerm_subnet.subnet_pe.id
+  custom_network_interface_name = "nic-${each.key}"
+  private_dns_zone_group {
+    name = "default"
+    private_dns_zone_ids = [
+      each.key == "dataFactory"
+        ? module.dns_zone_datafactory[0].private_dns_zone_id
+        : module.dns_zone_portal[0].private_dns_zone_id
+    ]
+  }
+  private_service_connection {
+    name                           = "psc-${each.key}"
+    is_manual_connection           = false
+    private_connection_resource_id = azurerm_data_factory.this.id
+    subresource_names              = [each.key]
+  }
 }
