@@ -23,12 +23,12 @@ module "adf_private_endpoints" {
   endpoints = {
     kv = {
       # Optional: defaults to the map key
-      name               = "mpe-kv-demo"
+      name = "mpe-kv-demo"
       # Replace with your Key Vault resource ID
       target_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-demo/providers/Microsoft.KeyVault/vaults/kv-demo"
       # For Key Vault use the subresource name "vault"
-      subresource_name   = "vault"
-      description        = "ADF MPE to Key Vault"
+      subresource_name = "vault"
+      description      = "ADF MPE to Key Vault"
     }
   }
 }

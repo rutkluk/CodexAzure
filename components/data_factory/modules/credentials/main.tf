@@ -13,16 +13,6 @@ provider "azurerm" {
   features {}
 }
 
-locals {
-  normalized_uami_credentials = {
-    for key, cred in var.credentials_uami : key => {
-      name        = try(trimspace(cred.name), "") != "" ? cred.name : key
-      identity_id = trimspace(cred.identity_id)
-      annotations = try(cred.annotations, null)
-    }
-  }
-}
-
 resource "azurerm_data_factory_credential_user_managed_identity" "uami" {
   for_each = local.normalized_uami_credentials
 

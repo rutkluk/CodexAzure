@@ -1,4 +1,7 @@
 locals {
+
+  key_vault_name = element(split("/", var.key_vault_id), length(split("/", var.key_vault_id)) - 1)
+
   identity_config = var.identity == null ? null : {
     raw_type                   = trimspace(try(var.identity.type, ""))
     enable_system_assigned     = try(var.identity.enable_system_assigned_identity, null)

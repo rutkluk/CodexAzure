@@ -44,7 +44,7 @@ module "alerts_and_metrics" {
       metric_name = "PipelineRunDuration"
       aggregation = "Average"
       operator    = "GreaterThan"
-      threshold   = 1800   # seconds
+      threshold   = 1800 # seconds
       frequency   = "PT5M"
       window_size = "PT15M"
       severity    = 3

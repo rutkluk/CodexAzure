@@ -38,8 +38,8 @@ variable "metric_alerts" {
     aggregation = string
     operator    = string
     threshold   = number
-    frequency   = string   # ISO8601 duration e.g. PT5M
-    window_size = string   # ISO8601 duration e.g. PT5M
+    frequency   = string # ISO8601 duration e.g. PT5M
+    window_size = string # ISO8601 duration e.g. PT5M
 
     dimensions = optional(list(object({
       name     = string

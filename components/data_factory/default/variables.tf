@@ -1,38 +1,39 @@
+
 variable "factory_name" {
-  description = "The name of the Azure Data Factory instance."
+  description = "Nazwa instancji Azure Data Factory."
   type        = string
 }
 
 variable "resource_group_name" {
-  description = "The name of the resource group where the Data Factory will be deployed."
+  description = "Grupa zasobów docelowa."
   type        = string
 }
 
 variable "location" {
-  description = "Azure region where the Data Factory will be created."
+  description = "Region Azure."
   type        = string
 }
 
 variable "managed_virtual_network_enabled" {
-  description = "Flag to enable Managed Virtual Network for the Data Factory."
+  description = "Włącza Managed Virtual Network dla ADF (Azure IR w MvNet)."
   type        = bool
   default     = true
 }
 
 variable "public_network_enabled" {
-  description = "Flag to enable public network access for the Data Factory."
+  description = "Włącza publiczny dostęp do control‑plane ADF."
   type        = bool
   default     = false
 }
 
 variable "enable_control_plane_private_endpoint" {
-  description = "When true, creates Private Endpoints for ADF control plane (dataFactory and portal) and corresponding Private DNS zones."
+  description = "Tworzy Private Endpointy (dataFactory, portal) dla control‑plane ADF, gdy public_network_enabled=false."
   type        = bool
   default     = true
 }
 
 variable "identity" {
-  description = "Optional managed identity configuration for the Data Factory."
+  description = "Opcjonalna konfiguracja tożsamości zarządzanej."
   type = object({
     type                             = optional(string)
     enable_system_assigned_identity  = optional(bool)
@@ -43,30 +44,25 @@ variable "identity" {
 }
 
 variable "environment" {
-  description = "Deployment environment name used for environment-specific behaviors (e.g., dev, test, pre, prod)."
+  description = "Środowisko wdrożenia (dev|test|pre|prod)."
   type        = string
   default     = "dev"
-
-  validation {
-    condition     = contains(["dev", "test", "pre", "prod"], lower(var.environment))
-    error_message = "Environment must be one of dev, test, pre, or prod."
-  }
 }
 
 variable "customer_managed_key_id" {
-  description = "The ID of the customer-managed key to associate with the Data Factory when required."
+  description = "ID klucza Key Vault dla CMK (może być wersjonowane — moduł normalizuje)."
   type        = string
   default     = null
 }
 
 variable "customer_managed_key_identity_id" {
-  description = "Optional user-assigned managed identity ID that should authenticate to the customer-managed key when required."
+  description = "UAMI używana do autoryzacji CMK (opcjonalnie)."
   type        = string
   default     = null
 }
 
 variable "github_configuration" {
-  description = "Optional GitHub configuration for integration with Data Factory."
+  description = "Opcjonalna integracja GitHub."
   type = object({
     account_name    = string
     branch_name     = string
@@ -78,13 +74,13 @@ variable "github_configuration" {
 }
 
 variable "purview_id" {
-  description = "Optional Azure Purview account ID to associate with the Data Factory."
+  description = "Opcjonalny ID Purview do powiązania."
   type        = string
   default     = null
 }
 
 variable "global_parameters" {
-  description = "Optional map of global parameters to configure on the Data Factory."
+  description = "Global parameters ADF."
   type = map(object({
     type  = string
     value = string
@@ -94,19 +90,19 @@ variable "global_parameters" {
 }
 
 variable "tags" {
-  description = "Optional tags to assign to the Data Factory."
+  description = "Tagi zasobu."
   type        = map(string)
   default     = {}
 }
 
 variable "key_vault_id" {
-  description = "ID of the Key Vault that holds the customer-managed key (used in pre/prod)."
+  description = "ID Key Vault (dla CMK oraz Linked Service / MPE)."
   type        = string
   default     = null
 }
 
 variable "subnet" {
-  description = "Subnet configuration for the primary ADF subnet."
+  description = "Podsieć podstawowa (dla przykładowych zasobów)."
   type = object({
     resource_group_name = string
     vnet_name           = string
@@ -115,10 +111,22 @@ variable "subnet" {
 }
 
 variable "subnet_pe" {
-  description = "Subnet configuration for the ADF private endpoint subnet."
+  description = "Podsieć dla Private Endpointów control‑plane."
   type = object({
     resource_group_name = string
     vnet_name           = string
     cidr                = string
   })
+}
+
+variable "enable_kv_managed_private_endpoint" {
+  description = "Tworzy Managed Private Endpoint z ADF (Managed VNet) do Key Vault (data plane)."
+  type        = bool
+  default     = true
+}
+
+variable "create_key_vault_linked_service" {
+  description = "Tworzy Linked Service do Key Vault w ADF."
+  type        = bool
+  default     = true
 }

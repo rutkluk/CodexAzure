@@ -191,6 +191,7 @@ resource "azurerm_data_factory" "this" {
 }
 
 resource "azurerm_data_factory_integration_runtime_azure" "default" {
+  count                   = var.managed_virtual_network_enabled ? 1 : 0
   name                    = "AutoResolveIntegrationRuntime"
   data_factory_id         = azurerm_data_factory.this.id
   location                = "AutoResolve"
@@ -221,8 +222,8 @@ resource "azurerm_private_endpoint" "pe" {
     name = "default"
     private_dns_zone_ids = [
       each.key == "dataFactory"
-        ? module.dns_zone_datafactory[0].private_dns_zone_id
-        : module.dns_zone_portal[0].private_dns_zone_id
+      ? module.dns_zone_datafactory[0].private_dns_zone_id
+      : module.dns_zone_portal[0].private_dns_zone_id
     ]
   }
   private_service_connection {
@@ -232,3 +233,61 @@ resource "azurerm_private_endpoint" "pe" {
     subresource_names              = [each.key]
   }
 }
+
+# MPE from ADF (MVNet) to Key Vault (Data Plane)
+module "kv_mpe" {
+  source = "../modules/private_endpoints"
+
+  data_factory_id = azurerm_data_factory.this.id
+
+  endpoints = var.enable_kv_managed_private_endpoint && var.managed_virtual_network_enabled && var.key_vault_id != null ? {
+    kv = {
+      name               = "mpe-kv-(${var.factory_name})"
+      target_resource_id = var.key_vault_id
+      subresource_name   = "vault"
+    }
+  } : {}
+}
+
+# Default Linked Service to Key Vault
+module "kv_ls" {
+  source = "../modules/linked_service_key_vault"
+
+  name            = "ls-kv-${var.factory_name}"
+  data_factory_id = azurerm_data_factory.this.id
+  key_vault_id    = var.key_vault_id
+  enabled         = var.create_key_vault_linked_service && var.key_vault_id != null
+}
+
+resource "null_resource" "approve_kv_mpe" {
+  depends_on = [module.kv_mpe]
+  triggers = {
+    mpe_ids_json = jsonencode(try(module.kv_mpe.managed_private_endpoint_ids, {}))
+  }
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOT
+      CONNECTION_NAME=$(az keyvault private-endpoint-connection list \
+          --vault-name ${local.key_vault_name} \
+          --resource-group ${var.resource_group_name} \
+          --query "[?properties.privateLinkServiceConnectionState.status!='Approved'].name | [0]" \
+          -o tsv
+      )
+
+      echo "Pending connection: $${CONNECTION_NAME}"
+
+      if [ -n "$${CONNECTION_NAME}" ] && [ "$${CONNECTION_NAME}" != "null" ]; then
+        az keyvault private-endpoint-connection approve \
+          --resource-group ${var.resource_group_name} \
+          --vault-name ${local.key_vault_name} \
+          --name $${CONNECTION_NAME} \
+          --description "Approved automatically by Terraform for ADF Managed Private Endpoint"
+      else
+        echo "Nie znaleziono zadnego polaczenia w stanie Pending do zatwierdzenia."
+      fi
+      EOT
+  }
+}
+
+
+

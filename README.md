@@ -248,6 +248,33 @@ module "alerts_and_metrics" {
 Uruchomienie
 - `terraform init`
 - `terraform plan`
+
+## Walidacja i formatowanie
+
+- `terraform fmt -check -recursive` - sprawdza formatowanie wszystkich plików `.tf`.
+- `terraform fmt -recursive` - automatycznie formatuje pliki Terraform w repozytorium.
+- `terraform validate` - waliduje konfigurację (wymaga wcześniejszego `terraform init`).
+
+Uwaga: `terraform validate` wymaga zainicjalizowanego katalogu roboczego (pobrania providerów). Jeśli nie masz dostępu do sieci w danym środowisku, ogranicz się do `terraform fmt` i lokalnych przeglądów kodu.
+
+## Znane Ograniczenia / TODO
+
+- Walidacja nie obejmuje katalogu `policy/` — wymaga migracji do `azurerm` 4.x.
+  - W `azurerm_policy_set_definition` zamiast argumentu `policy_definitions` należy użyć powtarzalnych bloków `policy_definition_reference { ... }`.
+  - Zasób `azurerm_policy_assignment` w 4.x został rozbity na typy per-zakres (np. `azurerm_subscription_policy_assignment`, `azurerm_resource_group_policy_assignment`, `azurerm_management_group_policy_assignment`).
+  - Rekomendacja: zrefaktoryzować `policy/main.tf` do schematu 4.x; alternatywnie tymczasowo przypiąć starszą wersję providera na potrzeby legacy (niezalecane długoterminowo).
+  - TODO: dodać migrację `policy/` i przykładowe `policy_definition_reference` z parametrami.
+
+## Ostatnie zmiany i poprawki
+
+- Naprawiono blok wykonania lokalnego dla zatwierdzania Managed Private Endpoint do Key Vault (`null_resource "approve_kv_mpe"`):
+  - Zmieniono `provider = "local-exec"` na poprawny `provisioner "local-exec"`.
+  - Poprawiono literówkę `interprete` → `interpreter` i wywołanie shella.
+  - Poprawiono przypisanie zmiennej w bash: `CONNECTION_NAME=$(...)` (bez spacji).
+  - Skorygowano referencję zmiennej: `data.var.resource_group_name` → `var.resource_group_name`.
+  - Ujednolicono triggery `null_resource`: `triggers = { mpe_ids_json = jsonencode(try(module.kv_mpe.managed_private_endpoint_ids, {})) }` zamiast nieistniejącego `module.kv_mpe.id`.
+
+Te zmiany usuwają błąd parsowania HCL ("Missing newline after argument") oraz poprawiają zgodność z Terraformem 1.5+ i providerem `azurerm` 4.37.0.
 - `terraform apply`
 
 Sprzątanie

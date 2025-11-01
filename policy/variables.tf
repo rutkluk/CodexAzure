@@ -43,7 +43,7 @@ variable "subscription_id" {
 variable "allowed_regions" {
   description = "List of Azure regions where Azure Data Factory is allowed to be deployed."
   type        = list(string)
-  default     = [
+  default = [
     "westeurope",
     "northeurope"
   ]
@@ -59,6 +59,6 @@ Enforcement mode for the policy assignment.
 Use 'Default' to enforce (deny noncompliant resources),
 or 'DoNotEnforce' for audit-only mode.
 EOT
-  type    = string
-  default = "Default"
+  type        = string
+  default     = "Default"
 }
