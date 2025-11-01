@@ -274,13 +274,13 @@ resource "null_resource" "approve_kv_mpe" {
           -o tsv
       )
 
-      echo "Pending connection: $${CONNECTION_NAME}"
+      echo "Pending connection: ${CONNECTION_NAME}"
 
-      if [ -n "$${CONNECTION_NAME}" ] && [ "$${CONNECTION_NAME}" != "null" ]; then
+      if [ -n "${CONNECTION_NAME}" ] && [ "${CONNECTION_NAME}" != "null" ]; then
         az keyvault private-endpoint-connection approve \
           --resource-group ${var.resource_group_name} \
           --vault-name ${local.key_vault_name} \
-          --name $${CONNECTION_NAME} \
+          --name ${CONNECTION_NAME} \
           --description "Approved automatically by Terraform for ADF Managed Private Endpoint"
       else
         echo "Nie znaleziono zadnego polaczenia w stanie Pending do zatwierdzenia."
