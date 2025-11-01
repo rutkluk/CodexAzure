@@ -89,4 +89,8 @@ locals {
     dataFactory = "privatelink.datafactory.azure.net"
     portal      = "privatelink.adf.azure.com"
   }
+  # Principal (object) ID for UAMI used with CMK, when provided
+  cmk_uami_principal_id = (
+    local.customer_managed_key_identity_type == "UserAssigned" && trimspace(coalesce(var.customer_managed_key_identity_principal_id, "")) != ""
+  ) ? trimspace(var.customer_managed_key_identity_principal_id) : null
 }

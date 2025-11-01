@@ -89,6 +89,15 @@ resource "azurerm_key_vault_key" "cmk" {
   tags = local.tags
 }
 
+// Assign RBAC for UAMI on Key Vault when CMK is enabled
+resource "azurerm_role_assignment" "cmk_kv_crypto_service_uami" {
+  count = local.use_customer_managed_key && local.customer_managed_key_identity_type == "UserAssigned" && local.cmk_uami_principal_id != null && var.key_vault_id != null ? 1 : 0
+
+  scope                = var.key_vault_id
+  role_definition_name = "Key Vault Crypto Service Encryption User"
+  principal_id         = local.cmk_uami_principal_id
+}
+
 resource "azurerm_data_factory" "this" {
   name                = var.factory_name
   location            = var.location

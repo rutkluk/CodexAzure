@@ -130,3 +130,9 @@ variable "create_key_vault_linked_service" {
   type        = bool
   default     = true
 }
+
+variable "customer_managed_key_identity_principal_id" {
+  description = "Object ID (principal_id) UAMI do nadania roli 'Key Vault Crypto Service Encryption User' na Key Vault, gdy wlaczony jest CMK i wykorzystywana jest UAMI."
+  type        = string
+  default     = null
+}
