@@ -20,10 +20,10 @@ resource "azurerm_data_factory_pipeline" "this" {
   data_factory_id = var.data_factory_id
   activities_json = each.value.resolved_json
 
-  annotations           = each.value.annotations
-  folder                = each.value.folder
-  parameters            = each.value.parameters
-  variables             = each.value.variables
+  annotations = each.value.annotations
+  folder      = each.value.folder
+  parameters  = each.value.parameters
+  variables   = each.value.variables
   # additional_properties not supported in azurerm 4.37.0
 
   lifecycle {

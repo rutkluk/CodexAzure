@@ -84,4 +84,9 @@ locals {
   subnet_pe_name = "${var.factory_name}-pe"
   nsg            = { name = "${var.factory_name}-nsg" }
   tags           = var.tags
+  # DNS zones for ADF control plane
+  control_plane_dns_zones = {
+    dataFactory = "privatelink.datafactory.azure.net"
+    portal      = "privatelink.adf.azure.com"
+  }
 }

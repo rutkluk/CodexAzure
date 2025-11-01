@@ -198,21 +198,15 @@ resource "azurerm_data_factory_integration_runtime_azure" "default" {
   virtual_network_enabled = true
 }
 
-module "dns_zone_datafactory" {
-  count         = var.enable_control_plane_private_endpoint && !var.public_network_enabled ? 1 : 0
+module "dns_zone" {
+  for_each      = var.enable_control_plane_private_endpoint && !var.public_network_enabled ? local.control_plane_dns_zones : {}
   source        = "../../../modules/private-dns-zone/default"
-  dns_zone_name = "privatelink.datafactory.azure.net"
-}
-
-module "dns_zone_portal" {
-  count         = var.enable_control_plane_private_endpoint && !var.public_network_enabled ? 1 : 0
-  source        = "../../../modules/private-dns-zone/default"
-  dns_zone_name = "privatelink.adf.azure.com"
+  dns_zone_name = each.value
 }
 
 // Control Plane (Studio/API)
 resource "azurerm_private_endpoint" "pe" {
-  for_each                      = (var.enable_control_plane_private_endpoint && !var.public_network_enabled) ? toset(["dataFactory", "portal"]) : toset([])
+  for_each                      = (var.enable_control_plane_private_endpoint && !var.public_network_enabled) ? module.dns_zone : {}
   name                          = "pec-${each.key}"
   location                      = var.location
   resource_group_name           = var.resource_group_name
@@ -221,9 +215,7 @@ resource "azurerm_private_endpoint" "pe" {
   private_dns_zone_group {
     name = "default"
     private_dns_zone_ids = [
-      each.key == "dataFactory"
-      ? module.dns_zone_datafactory[0].private_dns_zone_id
-      : module.dns_zone_portal[0].private_dns_zone_id
+      module.dns_zone[each.key].private_dns_zone_id
     ]
   }
   private_service_connection {
@@ -274,13 +266,13 @@ resource "null_resource" "approve_kv_mpe" {
           -o tsv
       )
 
-      echo "Pending connection: ${CONNECTION_NAME}"
+      echo "Pending connection: $${CONNECTION_NAME}"
 
-      if [ -n "${CONNECTION_NAME}" ] && [ "${CONNECTION_NAME}" != "null" ]; then
+      if [ -n "$${CONNECTION_NAME}" ] && [ "$${CONNECTION_NAME}" != "null" ]; then
         az keyvault private-endpoint-connection approve \
           --resource-group ${var.resource_group_name} \
           --vault-name ${local.key_vault_name} \
-          --name ${CONNECTION_NAME} \
+          --name $${CONNECTION_NAME} \
           --description "Approved automatically by Terraform for ADF Managed Private Endpoint"
       else
         echo "Nie znaleziono zadnego polaczenia w stanie Pending do zatwierdzenia."
