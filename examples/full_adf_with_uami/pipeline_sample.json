@@ -1,0 +1,9 @@
+{
+  "name": "pl-sample",
+  "properties": {
+    "activities": [],
+    "annotations": ["demo"],
+    "parameters": {}
+  }
+}
+
